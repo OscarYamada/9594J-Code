@@ -86,9 +86,8 @@ lemlib::Chassis chassis(drivetrain, linearController, angularController, sensors
  */
 
 void initialize() {
-    pros::lcd::initialize(); // initialize brain screen
-    chassis.calibrate(); // calibrate sensors
     chassis.setPose(0, 0, 0); //set the pose to origin
+    pros::lcd::initialize(); // initialize brain screen
     //set motors brake modes
     leftMotors.set_brake_modes(pros::E_MOTOR_BRAKE_COAST);
     rightMotors.set_brake_modes(pros::E_MOTOR_BRAKE_COAST);
@@ -105,7 +104,6 @@ void initialize() {
 
     // thread to for brain screen and position logging
     pros::Task screenTask([&]() {
-        lemlib::Pose pose(0, 0, 0); //creates new pose object
         while (true) {
             // print robot location to the brain screen
             pros::lcd::print(0, "X: %f", chassis.getPose().x); // x
@@ -127,7 +125,10 @@ void disabled() {}
 /**
  * runs after initialize if the robot is connected to field control
  */
-void competition_initialize() {}
+void competition_initialize() {
+    chassis.calibrate(); // calibrate sensors
+    chassis.setPose(0, 0, 0); //set the pose to origin
+}
 
 // get a path used for pure pursuit
 // this needs to be put outside a function
@@ -140,12 +141,16 @@ ASSET(example_txt); // '.' replaced with "_" to make c++ happy
  */
 void autonomous() {
     chassis.setPose(0 ,0 , 0); //set the pose to origin
+
+    chassis.turnTo(10, 0, 10000000);
     
-    chassis.moveToPose(-24, 47, 330, 2000);
-    intake.move(127);
-    chassis.moveToPose(6, 49, 90, 3000);
-    chassis.waitUntil(4);
-    intake.move(-127);
+    chassis.moveToPoint(0, 10, 1000);
+
+    // chassis.moveToPose(-24, 47, 330, 2000);
+    // intake.move(127);
+    // chassis.moveToPose(6, 49, 90, 3000);
+    // chassis.waitUntil(4);
+    // intake.move(-127);
 
 
 }
