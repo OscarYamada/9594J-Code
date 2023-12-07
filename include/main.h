@@ -75,9 +75,6 @@ void opcontrol(void);
 /**
  * You can add C++-only headers here
  */
-
-#include "interfered.hpp"
-
 //#include <iostream>
 #endif
 
