@@ -14,7 +14,7 @@ pros::ADIDigitalOut blocker ('H');
 
 // other motors
 pros::Motor cata(15, pros::E_MOTOR_GEARSET_36, true); // cata motor. port 8
-pros::Motor intake(14, pros::E_MOTOR_GEARSET_06, true); // intake motor. port 20
+pros::Motor intake(14, pros::E_MOTOR_GEARSET_06); // intake motor. port 20
 
 // drive motors
 pros::Motor lF(20, pros::E_MOTOR_GEARSET_06, true); // left front motor. port 20, reversed
@@ -37,7 +37,7 @@ pros::MotorGroup rightMotors({rF, rM, rB}); // right motor group
 lemlib::Drivetrain drivetrain(
 	&leftMotors, // left motor group
     &rightMotors, // right motor group
-    10, // 10 inch track width
+    12, // 12 inch track width (CHANGE WITH NEW MEASUREMENTS)
     lemlib::Omniwheel::NEW_325, // using new 3.25" omnis
     360, // drivetrain rpm is 360
     8 // chase power is 8. If we didn't have traction wheels, it would be 2
@@ -132,7 +132,10 @@ void competition_initialize() {
 
 // get a path used for pure pursuit
 // this needs to be put outside a function
-ASSET(example_txt); // '.' replaced with "_" to make c++ happy
+// '.' replaced with "_" to make c++ happy
+ASSET(pathUnderHang_txt);   //path for curve under goal. After 35in,
+                            //drop off triball.
+ASSET(pathCurveGoal_txt);   //path that curves 
 
 /**
  * Runs during auto
@@ -140,17 +143,57 @@ ASSET(example_txt); // '.' replaced with "_" to make c++ happy
  * This is an example autonomous routine which demonstrates a lot of the features LemLib has to offer
  */
 void autonomous() {
-    chassis.setPose(0 ,0 , 0); //set the pose to origin
+    chassis.setPose(33,-53, 0); //set the pose to origin
 
-    chassis.turnTo(10, 0, 10000000);
+    wings.set_value(true);
+    chassis.moveToPose(11, -4, 309, 1000);
+    chassis.waitUntil(1);
+    wings.set_value(false);
+    intake.move(127);
+    // total time: 1000
+
+    chassis.moveToPose(41, -4, 90, 800);
+    chassis.waitUntil(2);
+    wings.set_value(true);
+    chassis.waitUntil(4);
+    intake.move(-127);
+    // total time: 1800
     
-    chassis.moveToPoint(0, 10, 1000);
+    chassis.moveToPoint(20, -4, 600, false);
+    wings.set_value(false);
+    // total time: 2400
 
-    // chassis.moveToPose(-24, 47, 330, 2000);
-    // intake.move(127);
-    // chassis.moveToPose(6, 49, 90, 3000);
-    // chassis.waitUntil(4);
-    // intake.move(-127);
+    chassis.moveToPose(11, -20, 240, 700);
+    intake.move(127);
+    // total time: 3100
+
+    chassis.follow(pathUnderHang_txt, 15, 3500);
+    chassis.waitUntil(35);
+    intake.move(-127);
+    chassis.waitUntil(40);
+    intake.move(127);
+    // total time: 6600
+
+    chassis.moveToPoint(30, -58, 300, false);
+    // total time: 6900
+
+    chassis.turnTo(40, -58, 600);
+    // total time: 7500
+
+    chassis.follow(pathCurveGoal_txt, 10, 3000);
+    // total time: 10500
+
+    chassis.follow(pathCurveGoal_txt, 10, 3000, false);
+    // total time: 13500
+
+    chassis.moveToPoint(8, -58, 300, false);
+    // total time: 13800
+
+    // total excess time: 15000 - 13800 = 1200 msec. Distribute accordingly to testing.
+
+
+
+
 }
 
 /**
@@ -165,8 +208,17 @@ void opcontrol() {
         // get joystick positions
         int leftY = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
         int rightX = controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y);
+        if(abs(leftY)<15){
+            leftY= 0;
+        }
+        if(abs(rightX)<15){
+            rightX= 0;
+        }
+
         // move the chassis with tank drive
         chassis.tank(leftY, rightX);
+
+
 		//toggle wings
 		if(controller.get_digital(pros::E_CONTROLLER_DIGITAL_A)){
             wingsvalue = !wingsvalue;
@@ -178,16 +230,17 @@ void opcontrol() {
             blocker.set_value(blockervalue);
 		}
         //cata move function
-        cata.move(127 * controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2));
-        // if(controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2)){
-        //     cata.move(127);     //if the button is pressed, cata moves
-        // }
-        // else{
-        //     cata.move(127);
-        //     if (cata_rot.get_angle() < 50 && cata_rot.get_angle() > 40) {
-        //         cata.move(0);   //if button isn't pressed, cata moves until in angle range 50-40.
-        //     }
-        // }
+        // cata.move(127 * controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2));
+        if(controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2)){
+            cata.move(127);     //if the button is pressed, cata moves
+        }
+        else{
+            cata.move(127);
+            if (cata_rot.get_angle() > 55 && cata_rot.get_angle() < 350) {
+                cata.move(0);   //if button isn't pressed, cata moves until out of angle range
+            }
+        }
+
         //intake spin
         if(!controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1)){
             intake.move(127 * controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1));
